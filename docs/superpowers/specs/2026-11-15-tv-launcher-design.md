@@ -155,3 +155,24 @@ dışarıya hiçbir veri gönderemeyen, hafif bir ana ekran.
 - Dilim başına cümlelerin tam listesi (yukarıdaki tonda, Türkçe).
 - Izgara için `GridView` mi elle dizilim mi.
 - Animasyon eğrileri ve tam süreler (toplam ~2 sn içinde kalmak şartıyla).
+
+## Değişiklik (2026-11-15): Düzen B · Satırlar
+
+Kullanıcı uygulama sırasında düzeni A'dan (tek ızgara) B'ye (satırlar) çevirdi.
+Bu bölüm Hedef 3, 5 ve 6'nın yerine geçer; diğer hedefler aynen geçerli.
+
+- **Üst:** solda saate göre değişen cümle, sağda saat. Simge yok.
+- **Favoriler satırı:** büyük 16:9 kartlar (ekranda 4 tane görünür, fazlası
+  yana kayar). İlk açılışta hazır: Netflix (`com.netflix.ninja`), YouTube
+  (`com.google.android.youtube.tv`), Disney+ (`com.disney.disneyplus`), Exxen
+  (`com.exxen.android`) — yalnızca kurulu olanlar (kullanıcı kararı). Bir kez
+  yazılır; sonra kullanıcının seçimi esastır.
+- **Tüm uygulamalar satırı:** küçük 16:9 kartlar, yana kayar, alfabetik
+  (Türkçe), favoriler ve gizlenenler hariç.
+- **Ayarlar satırı:** Wi-Fi, Ses, Ekran, Bluetooth, Tüm ayarlar kutucukları
+  (simge + yazı). "Tüm ayarlar"a uzun basınca "Gizli uygulamalar" açılır.
+- **Uzun basma menüsü:** favori kartında "Favorilerden çıkar", "Gizle";
+  diğer kartlarda "Favorilere ekle" (sona eklenir), "Gizle".
+- **Giriş animasyonu:** cümle ortadan başlığa kayar, ardından görünen kartlar
+  ve kutucuklar satır satır alttan gelir (toplam ~2 sn, tuşla atlanır).
+- **Odak:** yön tuşlarıyla satırlar arası geçiş; açılışta ilk favori kartı.

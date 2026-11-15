@@ -282,3 +282,51 @@
 - [ ] **Step 6: Commit.** Message: `feat: live package updates, home/back handling, README`.
 
 - [ ] **Step 7: Hand back to the user.** Uninstalling Projectivy is **not** part of this plan. Ask the user first, since it is hard to reverse (it would need a Play Store reinstall).
+
+---
+
+## Revision (2026-11-15): Layout B
+
+The user switched the spec to Layout B mid-execution (see spec section "Değişiklik: Düzen B"). Tasks 1–6 stay. Task 6's device wake check moves into Task 6B. Task 7 runs after Task 6B unchanged, except that "grid position 0" now means "first favorite card".
+
+### Task 6B: Rows layout (favorites / all apps / settings)
+
+**Files:**
+- Modify: `AppOrder.kt` (add `splitRows`, `defaultFavorites`), `AppOrderTest.kt`, `Prefs.kt` (`favoritesInitialized`), `activity_home.xml`, `HomeActivity.kt`, `IntroAnimator.kt`, `strings.xml`
+- Create: `app/src/main/res/layout/item_tile.xml`, `ic_display.xml`, `ic_bluetooth.xml`
+- Delete: `AppGridAdapter.kt` (keep `CardFrame`; move it to `CardFrame.kt`)
+
+**Interfaces:**
+- `data class Rows(val favorites: List<AppEntry>, val others: List<AppEntry>)`
+- `fun splitRows(apps: List<AppEntry>, pinned: List<String>, hidden: Set<String>, compare: Comparator<String>): Rows`. Favorites follow `pinned` order, minus hidden and missing apps. Others are sorted by label, minus favorites and hidden.
+- `val DEFAULT_FAVORITES = listOf("com.netflix.ninja", "com.google.android.youtube.tv", "com.disney.disneyplus", "com.exxen.android")`
+- `fun defaultFavorites(installed: Set<String>): List<String>`. Returns `DEFAULT_FAVORITES` filtered to installed apps, in order.
+- `IntroAnimator(header: TextView, overlay: TextView)` with `play(text: String, items: List<View>, onEnd: () -> Unit)`, `skip()` and `isRunning`.
+
+- [ ] **Step 1: Write failing tests.**
+  - `splitFavoritesInPinnedOrder`: `pinned=["d","a"]` gives favorites `d,a`, and `others` holds the rest sorted by label.
+  - `splitHiddenFavoriteExcluded`: a pinned and hidden app appears in neither row.
+  - `splitStalePinnedIgnored`: a pinned package that is not installed is ignored.
+  - `defaultsOnlyInstalled`: `defaultFavorites(setOf("com.exxen.android","com.netflix.ninja","x")) == listOf("com.netflix.ninja","com.exxen.android")`.
+- [ ] **Step 2: Run the tests.** Run `./gradlew :app:testDebugUnitTest`. Expected: FAIL (unresolved).
+- [ ] **Step 3: Implement the pure functions.** Run the tests. Expected: PASS.
+- [ ] **Step 4: Replace the GridView with rows built from framework views.**
+  - Favorites row: `HorizontalScrollView` holding a `LinearLayout` of focusable `CardFrame` cards, 4 visible across the content width.
+  - All-apps row: same structure with 7 visible cards.
+  - Settings row: 5 focusable tiles.
+  - On first load, if `!prefs.favoritesInitialized`, set `prefs.pinned = defaultFavorites(installed)` and set the flag.
+  - The focus effect and the long-press menu move to each card's own focus and long-click listeners.
+  - Settings intents:
+    - Wi-Fi: `ACTION_WIFI_SETTINGS`.
+    - Ses: `ACTION_SOUND_SETTINGS` with package `com.android.tv.settings`.
+    - Ekran: `ACTION_DISPLAY_SETTINGS` with package `com.android.tv.settings`.
+    - Bluetooth: `ACTION_BLUETOOTH_SETTINGS`.
+    - Tüm ayarlar: `ACTION_SETTINGS`.
+    - Every intent falls back to `ACTION_SETTINGS`.
+- [ ] **Step 5: Device check.**
+  - Three rows appear, with the 4 default favorites.
+  - D-pad moves between and within rows.
+  - Each tile opens the right screen (`topResumedActivity`).
+  - Add and remove a favorite, hide an app and restore it, and confirm the changes survive a force-stop.
+  - Wake check: `pm clear dev.anaekran`, launch, and the intro plays. `am force-stop` and launch again: no intro. Do not run `KEYCODE_SLEEP` again, because ADB drops in standby. Instead, ask the user to turn the TV off and on, then check the intro over ADB right after wake.
+- [ ] **Step 6: Commit.** Message: `feat: rows layout with default favorites and settings tiles`.
