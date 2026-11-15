@@ -30,10 +30,60 @@
                 android:maxLines="1"
                 android:textColor="#ffffff"
                 android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:fontFamily="sans-serif-light"
+                android:textColor="#e6ffffff"
+                android:textSize="22sp" />
+
+            <ImageButton
+                android:id="@+id/btnWifi"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/icon_bg"
+                android:contentDescription="Wi-Fi"
+                android:focusable="true"
+                android:nextFocusDown="@id/grid"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_wifi"
+                android:tint="@color/icon_tint" />
+            <ImageButton
+                android:id="@+id/btnSound"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/icon_bg"
+                android:contentDescription="Ses"
+                android:focusable="true"
+                android:nextFocusDown="@id/grid"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_sound"
+                android:tint="@color/icon_tint" />
+            <ImageButton
+                android:id="@+id/btnSettings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/icon_bg"
+                android:contentDescription="Ayarlar"
+                android:focusable="true"
+                android:nextFocusDown="@id/grid"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_settings"
+                android:tint="@color/icon_tint" />
         </LinearLayout>
 
         <GridView
             android:id="@+id/grid"
+            android:nextFocusUp="@id/btnWifi"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
