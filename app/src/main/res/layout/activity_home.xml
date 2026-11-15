@@ -6,10 +6,12 @@
     android:background="#07080c">
 
     <!-- Sabit arka plan: hareketli hali boştayken her karede tam ekran çizim yapıp GPU'yu ~10 ms/kare meşgul ediyordu. -->
+    <!-- Donanım katmanı: radyal geçiş bir kez dokuya çizilir; zayıf GPU'da (Mali-450) her karede yeniden hesaplanmaz. -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/bg_home" />
+        android:background="@drawable/bg_home"
+        android:layerType="hardware" />
 
     <View
         android:id="@+id/glowA"

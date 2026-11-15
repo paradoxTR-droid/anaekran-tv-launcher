@@ -102,7 +102,7 @@ class HomeActivity : Activity() {
         favRow = findViewById(R.id.favRow)
         allRow = findViewById(R.id.allRow)
         tileRow = findViewById(R.id.tiles)
-        intro = IntroAnimator(header, findViewById(R.id.overlayTitle), listOf(findViewById(R.id.glowA), findViewById(R.id.glowB), findViewById(R.id.glowC)),
+        intro = IntroAnimator(header, findViewById(R.id.overlayTitle), if (isWeakDevice()) emptyList() else listOf(findViewById(R.id.glowA), findViewById(R.id.glowB), findViewById(R.id.glowC)),
             listOf(findViewById(R.id.labelFav), findViewById(R.id.labelAll), findViewById(R.id.labelSettings)))
         menuPanel = findViewById(R.id.menuPanel)
         menuScrim = findViewById(R.id.menuScrim)
@@ -129,6 +129,13 @@ class HomeActivity : Activity() {
             findViewById<View>(R.id.allScroll).scrollTo(0, 0)
             firstCard()?.requestFocus()
         }
+    }
+
+    /** 1 GB'lık Mi TV Stick'te renkli bulutlar animasyonu ~19 fps'e düşürüyordu; zayıf cihazda bulutsuz giriş. */
+    private fun isWeakDevice(): Boolean {
+        val mi = android.app.ActivityManager.MemoryInfo()
+        (getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager).getMemoryInfo(mi)
+        return mi.totalMem < 1_500_000_000L
     }
 
     /** Android 13+ dışa açıklık bayrağı ister; daha eskilerde (Android 9 stick) bayrak yok. */
