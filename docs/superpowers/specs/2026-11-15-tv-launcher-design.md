@@ -176,3 +176,19 @@ Bu bölüm Hedef 3, 5 ve 6'nın yerine geçer; diğer hedefler aynen geçerli.
 - **Giriş animasyonu:** cümle ortadan başlığa kayar, ardından görünen kartlar
   ve kutucuklar satır satır alttan gelir (toplam ~2 sn, tuşla atlanır).
 - **Odak:** yön tuşlarıyla satırlar arası geçiş; açılışta ilk favori kartı.
+
+## Değişiklik 2 (2026-11-15): Ayrıntılı menü, kaldırma, canlı animasyonlar
+
+- **İzin (kullanıcı kararı):** manifest'e yalnızca
+  `android.permission.REQUEST_DELETE_PACKAGES` eklenir. Bu izin sessiz
+  kaldırma yapamaz; her kaldırmada sistemin onay penceresi açılır. Ağ izni
+  yasağı ve diğer anti-hedefler aynen geçerli.
+- **Uzun basma menüsü:** sağdan kayarak açılan, simgeli panel. Sırasıyla:
+  Aç · Favorilere ekle / Favorilerden çıkar · Sola taşı · Sağa taşı (yalnızca
+  favorilerde, uçlarda gizlenir) · Gizle · Uygulama bilgisi
+  (`ACTION_APPLICATION_DETAILS_SETTINGS`) · Kaldır (yalnızca sistem
+  uygulaması olmayanlarda; `ACTION_DELETE` → sistem onayı). Geri tuşu paneli
+  kapatır.
+- **Animasyonlar:** odaklanan kart yaylanarak büyür (overshoot); giriş
+  animasyonunda kartlar yaylanarak oturur; panel kayarak açılır/kapanır;
+  arka plan renk geçişi çok yavaş hareket eder (ekran görünürken).

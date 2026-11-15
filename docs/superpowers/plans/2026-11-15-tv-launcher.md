@@ -330,3 +330,36 @@ The user switched the spec to Layout B mid-execution (see spec section "Değişi
   - Add and remove a favorite, hide an app and restore it, and confirm the changes survive a force-stop.
   - Wake check: `pm clear dev.anaekran`, launch, and the intro plays. `am force-stop` and launch again: no intro. Do not run `KEYCODE_SLEEP` again, because ADB drops in standby. Instead, ask the user to turn the TV off and on, then check the intro over ADB right after wake.
 - [ ] **Step 6: Commit.** Message: `feat: rows layout with default favorites and settings tiles`.
+
+## Revision 2 (2026-11-15): Detailed menu, uninstall, livelier animation
+
+The spec section "Değişiklik 2" applies. The Global Constraints permission rule now allows exactly one permission: `android.permission.REQUEST_DELETE_PACKAGES`.
+
+### Task 7B: Action panel, uninstall, motion
+
+**Interfaces:**
+- `AppEntry` gains `val removable: Boolean = false`. `loadApps` sets it to `(flags and FLAG_SYSTEM) == 0`.
+- `fun moveFavorite(pinned: List<String>, pkg: String, delta: Int): List<String>`. Swaps `pkg` with its neighbor; at the ends it returns the list unchanged.
+- `enum class MenuAction { OPEN, FAV_ADD, FAV_REMOVE, MOVE_LEFT, MOVE_RIGHT, HIDE, INFO, UNINSTALL }`
+- `fun menuActions(favoriteIndex: Int, favoriteCount: Int, removable: Boolean): List<MenuAction>`. `favoriteIndex` is -1 when the app is not a favorite.
+
+- [ ] **Step 1: Write failing tests.**
+  - `moveFavoriteLeft` / `moveFavoriteRight`: `moveFavorite(listOf("a","b","c"),"b",-1) == listOf("b","a","c")`.
+  - `moveFavoriteAtEdgeUnchanged`.
+  - `menuForNonFavoriteSystemApp`: `[OPEN, FAV_ADD, HIDE, INFO]`.
+  - `menuForMiddleFavoriteRemovable`: `[OPEN, FAV_REMOVE, MOVE_LEFT, MOVE_RIGHT, HIDE, INFO, UNINSTALL]`.
+  - `menuForFirstFavoriteHasNoMoveLeft`.
+- [ ] **Step 2: Run the tests.** Expected: FAIL. Then implement the pure functions in `AppOrder.kt`. Run again. Expected: PASS.
+- [ ] **Step 3: Build the panel and the motion.**
+  - Panel: a right-side `LinearLayout` overlay, 360dp wide, with a semi-transparent scrim. Each row is an icon plus a label, and rows are focusable. It slides in over 220 ms with a `DecelerateInterpolator`. Back or a selection closes it.
+  - Uninstall: `Intent(Intent.ACTION_DELETE, Uri.parse("package:$pkg"))`.
+  - Card focus: scale 1.1 with `OvershootInterpolator(2f)` over 220 ms.
+  - Intro cards: `OvershootInterpolator(1.2f)`.
+  - Background: an oversized gradient view whose translation is driven by a 40 s `ValueAnimator`, infinite and reversing. Start it in `onResume` and pause it in `onPause`.
+- [ ] **Step 4: Device check.**
+  - The panel opens and closes, and every action works.
+  - MOVE_LEFT and MOVE_RIGHT reorder favorites, and the order survives a force-stop.
+  - Uninstall shows the system dialog. Cancel it there and do not uninstall anything without the user's OK.
+  - `aapt dump permissions` lists only `REQUEST_DELETE_PACKAGES`.
+  - Check PSS and the intro recording.
+- [ ] **Step 5: Commit.**
