@@ -2,4 +2,8 @@
 <resources>
     <string name="app_name">Ana Ekran</string>
     <string name="all_hidden">Tüm uygulamalar gizli. Ayarlar\'a uzun basarak geri getirebilirsin.</string>
+    <string name="pin_first">Başa taşı</string>
+    <string name="hide">Gizle</string>
+    <string name="hidden_apps">Gizli uygulamalar</string>
+    <string name="no_hidden">Gizli uygulama yok</string>
 </resources>

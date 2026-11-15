@@ -1,6 +1,8 @@
 package dev.anaekran
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.pm.PackageManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -56,8 +58,10 @@ class HomeActivity : Activity() {
         // Paketsiz SOUND_SETTINGS bu cihazda iki uygulama arasında seçim ekranı açıyor.
         bindIcon(R.id.btnSound) { openSettings(Settings.ACTION_SOUND_SETTINGS, "com.android.tv.settings") }
         bindIcon(R.id.btnSettings) { openSettings(Settings.ACTION_SETTINGS) }
+        findViewById<View>(R.id.btnSettings).setOnLongClickListener { showHiddenApps(); true }
 
         grid.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ -> launch(adapter.getItem(pos)) }
+        grid.onItemLongClickListener = AdapterView.OnItemLongClickListener { _, _, pos, _ -> showAppMenu(adapter.getItem(pos)); true }
         grid.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             // GridView odak yokken de seçim yapar; vurgu yalnızca ızgara odaktayken.
             override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) = focus(if (grid.hasFocus()) v else null)
@@ -121,6 +125,7 @@ class HomeActivity : Activity() {
             runOnUiThread {
                 adapter.items = list
                 empty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                if (list.isEmpty()) findViewById<View>(R.id.btnWifi).requestFocus()
                 grid.post {
                     // Pencere ilk odağı üst bardaki simgeye verir; açılışta ilk karttan başla.
                     if (!initialFocusDone && list.isNotEmpty()) {
@@ -145,6 +150,41 @@ class HomeActivity : Activity() {
         v?.let {
             it.animate().scaleX(1.08f).scaleY(1.08f).translationZ(12 * resources.displayMetrics.density).setDuration(150).start()
             it.foreground = getDrawable(R.drawable.card_focus)
+        }
+    }
+
+    private fun dialog() = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+
+    private fun showAppMenu(e: AppEntry) {
+        dialog().setTitle(e.label)
+            .setItems(arrayOf(getString(R.string.pin_first), getString(R.string.hide))) { _, which ->
+                if (which == 0) prefs.pinned = pinFirst(prefs.pinned, e.packageName)
+                else prefs.hidden = prefs.hidden + e.packageName
+                reloadApps()
+            }
+            .show()
+    }
+
+    /** Gizlenenleri listeler; seçilen tekrar görünür. Artık kurulu olmayanlar atlanır. */
+    private fun showHiddenApps() {
+        io.execute {
+            val pm = packageManager
+            val hidden = prefs.hidden.mapNotNull { pkg ->
+                try {
+                    pkg to pm.getApplicationLabel(pm.getApplicationInfo(pkg, PackageManager.ApplicationInfoFlags.of(0))).toString()
+                } catch (_: PackageManager.NameNotFoundException) {
+                    null
+                }
+            }.sortedWith(compareBy(byLabel) { it.second })
+            runOnUiThread {
+                val b = dialog().setTitle(R.string.hidden_apps)
+                if (hidden.isEmpty()) b.setMessage(R.string.no_hidden)
+                else b.setItems(hidden.map { it.second }.toTypedArray()) { _, which ->
+                    prefs.hidden = prefs.hidden - hidden[which].first
+                    reloadApps()
+                }
+                b.show()
+            }
         }
     }
 
