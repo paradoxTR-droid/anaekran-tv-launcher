@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ev silueti, kapısı oynat üçgeni (evenOdd ile oyulur, arkadaki renk geçişi görünür). 108'lik uyarlanabilir ikon ızgarası. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#ffffff"
+        android:fillType="evenOdd"
+        android:pathData="M54,29 L81,51 Q83,53 80.5,54.5 L75,54.5 L75,76 Q75,79 72,79 L36,79 Q33,79 33,76 L33,54.5 L27.5,54.5 Q25,53 27,51 Z M48,58 L48,73 Q48,75 50,74 L62,66.8 Q63.8,65.5 62,64.2 L50,57 Q48,56 48,58 Z" />
+</vector>

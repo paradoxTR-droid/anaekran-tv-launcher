@@ -96,7 +96,8 @@ class HomeActivity : Activity() {
         favRow = findViewById(R.id.favRow)
         allRow = findViewById(R.id.allRow)
         tileRow = findViewById(R.id.tiles)
-        intro = IntroAnimator(header, findViewById(R.id.overlayTitle), listOf(findViewById(R.id.glowA), findViewById(R.id.glowB), findViewById(R.id.glowC)))
+        intro = IntroAnimator(header, findViewById(R.id.overlayTitle), listOf(findViewById(R.id.glowA), findViewById(R.id.glowB), findViewById(R.id.glowC)),
+            listOf(findViewById(R.id.labelFav), findViewById(R.id.labelAll), findViewById(R.id.labelSettings)))
         menuPanel = findViewById(R.id.menuPanel)
         menuScrim = findViewById(R.id.menuScrim)
         menuScrim.setOnClickListener { closeMenu() }
@@ -384,7 +385,7 @@ class HomeActivity : Activity() {
         reloadApps()
     }
 
-    /** Arka plan renk geçişi ekrandan büyük çizilir ve 40 sn'de bir uçtan uca kayar (GPU katmanı, yeniden çizim yok). */
+    /** Arka plan renk geçişi ekrandan büyük çizilir ve 40 sn'de bir uçtan uca kayar (katman yok: doku belleği tutmasın, geçiş GPU'da ucuz). */
     private fun setupDrift() {
         val dm = resources.displayMetrics
         val extraW = (dm.widthPixels * 0.3f).toInt()
@@ -393,7 +394,6 @@ class HomeActivity : Activity() {
             width = dm.widthPixels + extraW
             height = dm.heightPixels + extraH
         }
-        bgDrift.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         drift = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 40_000
             repeatMode = ValueAnimator.REVERSE

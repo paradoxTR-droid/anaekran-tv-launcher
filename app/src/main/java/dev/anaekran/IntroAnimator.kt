@@ -22,6 +22,7 @@ class IntroAnimator(
     private val header: TextView,
     private val overlay: TextView,
     private val glows: List<View>,
+    private val labels: List<View>,
 ) {
     private var set: AnimatorSet? = null
     val isRunning: Boolean get() = set?.isRunning == true
@@ -39,6 +40,9 @@ class IntroAnimator(
         overlay.scaleX = 1.4f; overlay.scaleY = 1.4f
         overlay.translationX = 0f; overlay.translationY = 0f
         items.forEach { it.alpha = 0f; it.translationY = 70 * d }
+        labels.forEach { it.alpha = 0f }
+        // Saydamlık animasyonu ekran dışı tampon açmasın (bu tamponlar animasyondan sonra ~40 MB GPU belleğinde kalıyordu).
+        (items + glows + labels + header + overlay).forEach { it.forceHasOverlappingRendering(false) }
         // Bulutların başlangıç köşeleri (merkeze göre) ve ulaşacakları noktalar.
         val from = listOf(-0.55f to -0.5f, 0.55f to -0.45f, 0f to 0.6f)
         val to = listOf(-0.22f to -0.12f, 0.24f to -0.05f, 0.02f to 0.2f)
@@ -47,7 +51,6 @@ class IntroAnimator(
             g.alpha = 0f
             g.scaleX = 0.3f; g.scaleY = 0.3f
             g.translationX = from[i].first * sw; g.translationY = from[i].second * sh
-            g.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         }
 
         overlay.post {
@@ -137,9 +140,15 @@ class IntroAnimator(
                 startDelay = 1700
                 duration = 450
             }
+            // Satır başlıkları animasyonun sonunda belirir.
+            val labelsIn = AnimatorSet().apply {
+                playTogether(labels.map { ObjectAnimator.ofFloat(it, View.ALPHA, 1f) })
+                startDelay = 1800
+                duration = 450
+            }
             val all = AnimatorSet()
             set = all
-            all.playTogether(listOf(appear, move, shimmer, handoff) + glowIn + glowOut + cardAnims)
+            all.playTogether(listOf(appear, move, shimmer, handoff, labelsIn) + glowIn + glowOut + cardAnims)
             all.addListener(object : AnimatorListenerAdapter() {
                 private var done = false
                 override fun onAnimationEnd(a: Animator) {
@@ -164,9 +173,7 @@ class IntroAnimator(
         overlay.visibility = View.GONE
         overlay.paint.shader = null
         items.forEach { it.alpha = 1f; it.translationY = 0f }
-        glows.forEach {
-            it.visibility = View.GONE
-            it.setLayerType(View.LAYER_TYPE_NONE, null)
-        }
+        labels.forEach { it.alpha = 1f }
+        glows.forEach { it.visibility = View.GONE }
     }
 }

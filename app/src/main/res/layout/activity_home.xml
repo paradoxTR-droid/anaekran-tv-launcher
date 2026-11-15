@@ -78,7 +78,7 @@
             android:clipChildren="false"
             android:orientation="vertical">
 
-            <TextView style="@style/RowLabel" android:text="@string/row_favorites" />
+            <TextView android:id="@+id/labelFav" style="@style/RowLabel" android:text="@string/row_favorites" />
 
             <HorizontalScrollView
                 android:id="@+id/favScroll"
@@ -87,7 +87,7 @@
                 <LinearLayout android:id="@+id/favRow" style="@style/RowInner" />
             </HorizontalScrollView>
 
-            <TextView style="@style/RowLabel" android:text="@string/row_all" />
+            <TextView android:id="@+id/labelAll" style="@style/RowLabel" android:text="@string/row_all" />
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -114,7 +114,7 @@
             
 </FrameLayout>
 
-            <TextView style="@style/RowLabel" android:text="@string/row_settings" />
+            <TextView android:id="@+id/labelSettings" style="@style/RowLabel" android:text="@string/row_settings" />
 
             <LinearLayout
                 android:id="@+id/tiles"
