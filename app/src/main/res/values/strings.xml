@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Ana Ekran</string>
+    <string name="all_hidden">Tüm uygulamalar gizli. Ayarlar\'a uzun basarak geri getirebilirsin.</string>
 </resources>
