@@ -119,6 +119,7 @@ class HomeActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
+            closeMenu()
             findViewById<View>(R.id.favScroll).scrollTo(0, 0)
             findViewById<View>(R.id.allScroll).scrollTo(0, 0)
             firstCard()?.requestFocus()
@@ -201,7 +202,13 @@ class HomeActivity : Activity() {
 
     fun reloadApps() {
         io.execute {
-            val apps = loadApps(packageManager, packageName)
+            // Arka plan hatası ana ekran sürecini öldürmesin (ana ekran çökerse TV'de ekran kalmaz).
+            val apps = try {
+                loadApps(packageManager, packageName)
+            } catch (e: RuntimeException) {
+                android.util.Log.w("AnaEkran", "loadApps failed", e)
+                return@execute
+            }
             if (!prefs.favoritesInitialized) {
                 prefs.pinned = defaultFavorites(apps.map { it.packageName }.toSet())
                 prefs.favoritesInitialized = true
@@ -359,14 +366,16 @@ class HomeActivity : Activity() {
         menuReturnFocus?.requestFocus()
     }
 
+    private fun visibleFavorites() = current?.favorites.orEmpty().map { it.packageName }
+
     private fun runAction(a: MenuAction, e: AppEntry) {
         val pkg = e.packageName
         when (a) {
             MenuAction.OPEN -> return launch(e)
             MenuAction.FAV_ADD -> prefs.pinned = prefs.pinned - pkg + pkg
             MenuAction.FAV_REMOVE -> prefs.pinned = prefs.pinned - pkg
-            MenuAction.MOVE_LEFT -> prefs.pinned = moveFavorite(prefs.pinned, pkg, -1)
-            MenuAction.MOVE_RIGHT -> prefs.pinned = moveFavorite(prefs.pinned, pkg, 1)
+            MenuAction.MOVE_LEFT -> prefs.pinned = moveVisibleFavorite(prefs.pinned, visibleFavorites(), pkg, -1)
+            MenuAction.MOVE_RIGHT -> prefs.pinned = moveVisibleFavorite(prefs.pinned, visibleFavorites(), pkg, 1)
             MenuAction.HIDE -> prefs.hidden = prefs.hidden + pkg
             MenuAction.INFO -> return openSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null)))
             // Sistem onay penceresi açılır; kaldırılırsa PACKAGE_REMOVED listeyi yeniler.
@@ -424,11 +433,15 @@ class HomeActivity : Activity() {
 
     // --- Açma ---
 
+    /** Ana ekran asla çökmesin: hedef yoksa ya da dışa kapalıysa genel Ayarlar'a, o da olmazsa hiçbir şey. */
     fun openSettings(intent: Intent) {
-        try {
-            startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        } catch (_: ActivityNotFoundException) {
-            startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        for (i in listOf(intent, Intent(Settings.ACTION_SETTINGS))) {
+            try {
+                startActivity(Intent(i).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            } catch (_: ActivityNotFoundException) {
+            } catch (_: SecurityException) {
+            }
         }
     }
 

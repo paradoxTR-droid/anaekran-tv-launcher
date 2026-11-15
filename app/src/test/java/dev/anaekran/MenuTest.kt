@@ -34,4 +34,11 @@ class MenuTest {
     }
 
     @Test fun menuForLastFavoriteHasNoMoveRight() = assertFalse(MOVE_RIGHT in menuActions(3, 4, removable = false))
+
+    @Test fun moveSkipsInvisiblePinnedNeighbour() =
+        // X kaldırılmış ya da gizli: görünen sıra [n, y]; y sola gidince görünür sıra değişmeli.
+        assertEquals(listOf("y", "n", "X"), moveVisibleFavorite(listOf("n", "X", "y"), listOf("n", "y"), "y", -1))
+
+    @Test fun moveVisibleAtEdgeKeepsOrder() =
+        assertEquals(listOf("n", "y", "X"), moveVisibleFavorite(listOf("n", "X", "y"), listOf("n", "y"), "n", -1))
 }

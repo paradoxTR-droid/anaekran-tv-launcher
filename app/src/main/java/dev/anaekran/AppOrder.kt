@@ -41,3 +41,7 @@ fun menuActions(favoriteIndex: Int, favoriteCount: Int, removable: Boolean): Lis
     add(MenuAction.INFO)
     if (removable) add(MenuAction.UNINSTALL)
 }
+
+/** Görünen favoriler içinde taşır; görünmeyen (gizli/kaldırılmış) sabitlemeler sona eklenip korunur. */
+fun moveVisibleFavorite(pinned: List<String>, visible: List<String>, pkg: String, delta: Int): List<String> =
+    moveFavorite(visible, pkg, delta) + pinned.filter { it !in visible }
