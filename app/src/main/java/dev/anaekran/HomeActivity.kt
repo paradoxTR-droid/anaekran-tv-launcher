@@ -1,6 +1,7 @@
 package dev.anaekran
 
 import android.app.Activity
+import android.animation.ValueAnimator
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
@@ -8,12 +9,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -56,6 +60,12 @@ class HomeActivity : Activity() {
     private var initialFocusDone = false
     private var introQueued = false
     private var swallowKeyUp = false
+    private lateinit var menuPanel: View
+    private lateinit var menuScrim: View
+    private var menuReturnFocus: View? = null
+    private val menuOpen get() = menuPanel.visibility == View.VISIBLE
+    private lateinit var bgDrift: View
+    private var drift: ValueAnimator? = null
 
     private val collator = Collator.getInstance(Locale.forLanguageTag("tr"))
     private val byLabel = Comparator<String> { a, b -> collator.compare(a, b) }
@@ -87,6 +97,11 @@ class HomeActivity : Activity() {
         allRow = findViewById(R.id.allRow)
         tileRow = findViewById(R.id.tiles)
         intro = IntroAnimator(header, findViewById(R.id.overlayTitle))
+        menuPanel = findViewById(R.id.menuPanel)
+        menuScrim = findViewById(R.id.menuScrim)
+        menuScrim.setOnClickListener { closeMenu() }
+        bgDrift = findViewById(R.id.bgDrift)
+        setupDrift()
         setGreeting(slotFor(LocalTime.now().hour))
         buildTiles()
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
@@ -127,8 +142,14 @@ class HomeActivity : Activity() {
         super.onStop()
     }
 
+    override fun onPause() {
+        drift?.pause()
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
+        drift?.let { if (it.isPaused) it.resume() else if (!it.isStarted) it.start() }
         val bootCount = Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT, -1)
         if (gate.shouldPlay(bootCount)) {
             gate.markPlayed(bootCount)
@@ -141,8 +162,11 @@ class HomeActivity : Activity() {
 
     /** Animasyon sırasında herhangi bir tuş animasyonu atlar; tuş başka işe yaramaz. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        // Ana ekranda Geri tuşu hiçbir şey yapmaz.
-        if (event.keyCode == KeyEvent.KEYCODE_BACK) return true
+        // Geri: menü açıksa kapatır, değilse ana ekranda hiçbir şey yapmaz.
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_DOWN && menuOpen) closeMenu()
+            return true
+        }
         if (event.action == KeyEvent.ACTION_DOWN && (intro.isRunning || introQueued)) {
             introQueued = false
             intro.skip()
@@ -277,28 +301,103 @@ class HomeActivity : Activity() {
     /** Odaklanan kart/kutucuk büyür ve beyaz çerçeve alır. */
     private fun highlight(v: View, has: Boolean) {
         val d = resources.displayMetrics.density
-        v.animate().scaleX(if (has) 1.08f else 1f).scaleY(if (has) 1.08f else 1f)
-            .translationZ(if (has) 12 * d else 0f).setDuration(150).start()
+        v.animate().scaleX(if (has) 1.1f else 1f).scaleY(if (has) 1.1f else 1f)
+            .translationZ(if (has) 14 * d else 0f)
+            .setInterpolator(if (has) OvershootInterpolator(2f) else DecelerateInterpolator())
+            .setDuration(if (has) 220 else 150).start()
         v.foreground = if (has) getDrawable(R.drawable.card_focus) else null
     }
 
     // --- Menüler ---
 
-    private fun dialog() = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
 
+    /** Sağdan kayan eylem paneli; seçenekler uygulamanın durumuna göre (bkz. menuActions). */
     private fun showAppMenu(e: AppEntry, favorite: Boolean) {
-        val first = getString(if (favorite) R.string.fav_remove else R.string.fav_add)
-        dialog().setTitle(e.label)
-            .setItems(arrayOf(first, getString(R.string.hide))) { _, which ->
-                if (which == 0) {
-                    prefs.pinned = if (favorite) prefs.pinned - e.packageName else prefs.pinned - e.packageName + e.packageName
-                } else {
-                    prefs.hidden = prefs.hidden + e.packageName
-                }
-                reloadApps()
+        val favs = current?.favorites.orEmpty()
+        val actions = menuActions(if (favorite) favs.indexOf(e) else -1, favs.size, e.removable)
+        findViewById<TextView>(R.id.menuTitle).text = e.label
+        val items = findViewById<LinearLayout>(R.id.menuItems)
+        items.removeAllViews()
+        val inflater = LayoutInflater.from(this)
+        actions.forEach { a ->
+            val (icon, label) = when (a) {
+                MenuAction.OPEN -> R.drawable.ic_play to R.string.menu_open
+                MenuAction.FAV_ADD -> R.drawable.ic_star to R.string.fav_add
+                MenuAction.FAV_REMOVE -> R.drawable.ic_star_off to R.string.fav_remove
+                MenuAction.MOVE_LEFT -> R.drawable.ic_arrow_left to R.string.move_left
+                MenuAction.MOVE_RIGHT -> R.drawable.ic_arrow_right to R.string.move_right
+                MenuAction.HIDE -> R.drawable.ic_hide to R.string.hide
+                MenuAction.INFO -> R.drawable.ic_info to R.string.app_info
+                MenuAction.UNINSTALL -> R.drawable.ic_delete to R.string.uninstall
             }
-            .show()
+            val row = inflater.inflate(R.layout.item_menu, items, false)
+            row.findViewById<ImageView>(R.id.menuIcon).setImageResource(icon)
+            row.findViewById<TextView>(R.id.menuLabel).setText(label)
+            row.setOnClickListener { closeMenu(); runAction(a, e) }
+            items.addView(row)
+        }
+        menuReturnFocus = currentFocus
+        // Panel açıkken odak kartlara kaçmasın.
+        (rowsView as ViewGroup).descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        menuScrim.alpha = 0f
+        menuScrim.visibility = View.VISIBLE
+        menuScrim.animate().alpha(1f).setDuration(220).start()
+        menuPanel.visibility = View.VISIBLE
+        menuPanel.post {
+            menuPanel.translationX = menuPanel.width.toFloat()
+            menuPanel.animate().translationX(0f).setInterpolator(DecelerateInterpolator(2f)).setDuration(220).start()
+            items.getChildAt(0)?.requestFocus()
+        }
     }
+
+    private fun closeMenu() {
+        if (!menuOpen) return
+        menuScrim.animate().alpha(0f).setDuration(180).withEndAction { menuScrim.visibility = View.GONE }.start()
+        menuPanel.animate().translationX(menuPanel.width.toFloat()).setInterpolator(DecelerateInterpolator())
+            .setDuration(180).withEndAction { menuPanel.visibility = View.GONE }.start()
+        (rowsView as ViewGroup).descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        menuReturnFocus?.requestFocus()
+    }
+
+    private fun runAction(a: MenuAction, e: AppEntry) {
+        val pkg = e.packageName
+        when (a) {
+            MenuAction.OPEN -> return launch(e)
+            MenuAction.FAV_ADD -> prefs.pinned = prefs.pinned - pkg + pkg
+            MenuAction.FAV_REMOVE -> prefs.pinned = prefs.pinned - pkg
+            MenuAction.MOVE_LEFT -> prefs.pinned = moveFavorite(prefs.pinned, pkg, -1)
+            MenuAction.MOVE_RIGHT -> prefs.pinned = moveFavorite(prefs.pinned, pkg, 1)
+            MenuAction.HIDE -> prefs.hidden = prefs.hidden + pkg
+            MenuAction.INFO -> return openSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null)))
+            // Sistem onay penceresi açılır; kaldırılırsa PACKAGE_REMOVED listeyi yeniler.
+            MenuAction.UNINSTALL -> return openSettings(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", pkg, null)))
+        }
+        reloadApps()
+    }
+
+    /** Arka plan renk geçişi ekrandan büyük çizilir ve 40 sn'de bir uçtan uca kayar (GPU katmanı, yeniden çizim yok). */
+    private fun setupDrift() {
+        val dm = resources.displayMetrics
+        val extraW = (dm.widthPixels * 0.3f).toInt()
+        val extraH = (dm.heightPixels * 0.3f).toInt()
+        bgDrift.layoutParams = (bgDrift.layoutParams as ViewGroup.LayoutParams).apply {
+            width = dm.widthPixels + extraW
+            height = dm.heightPixels + extraH
+        }
+        bgDrift.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        drift = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 40_000
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            addUpdateListener {
+                val f = it.animatedValue as Float
+                bgDrift.translationX = -extraW * f
+                bgDrift.translationY = -extraH * f * 0.6f
+            }
+        }
+    }
+
+    private fun dialog() = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
 
     /** Gizlenenleri listeler; seçilen tekrar görünür. Artık kurulu olmayanlar atlanır. */
     private fun showHiddenApps() {

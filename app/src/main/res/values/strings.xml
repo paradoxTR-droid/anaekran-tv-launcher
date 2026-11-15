@@ -15,4 +15,9 @@
     <string name="hide">Gizle</string>
     <string name="hidden_apps">Gizli uygulamalar</string>
     <string name="no_hidden">Gizli uygulama yok</string>
+    <string name="menu_open">Aç</string>
+    <string name="move_left">Sola taşı</string>
+    <string name="move_right">Sağa taşı</string>
+    <string name="app_info">Uygulama bilgisi</string>
+    <string name="uninstall">Kaldır</string>
 </resources>

@@ -6,11 +6,12 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.view.View
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.TextView
 
 /**
  * Ortada beliren cümle sol üstteki başlığa kayar, ardından kartlar/kutucuklar alttan sırayla yerine oturur.
- * Toplam ~1.9 sn: 0–300 ms belirme, 550–900 ms başlığa kayma, 900 ms'den itibaren kartlar.
+ * Toplam ~2 sn: 0–300 ms belirme, 550–900 ms başlığa kayma, 900 ms'den itibaren kartlar (380 ms, yaylanarak).
  */
 class IntroAnimator(private val header: TextView, private val overlay: TextView) {
     private var set: AnimatorSet? = null
@@ -61,12 +62,12 @@ class IntroAnimator(private val header: TextView, private val overlay: TextView)
             val cardAnims = cards.mapIndexed { i, c ->
                 AnimatorSet().apply {
                     playTogether(
-                        ObjectAnimator.ofFloat(c, View.ALPHA, 1f),
-                        ObjectAnimator.ofFloat(c, View.TRANSLATION_Y, 0f),
+                        ObjectAnimator.ofFloat(c, View.ALPHA, 1f).apply { interpolator = DecelerateInterpolator() },
+                        // Hafif yaylanarak otursun.
+                        ObjectAnimator.ofFloat(c, View.TRANSLATION_Y, 0f).apply { interpolator = OvershootInterpolator(1.2f) },
                     )
                     startDelay = 900L + minOf(i, 14) * 50L
-                    duration = 300
-                    interpolator = DecelerateInterpolator()
+                    duration = 380
                 }
             }
             set = AnimatorSet().apply {
