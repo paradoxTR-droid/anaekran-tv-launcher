@@ -90,3 +90,7 @@ adb uninstall dev.anaekran
 ```bash
 ./gradlew :app:testDebugUnitTest
 ```
+
+## Lisans
+
+[MIT](LICENSE)
