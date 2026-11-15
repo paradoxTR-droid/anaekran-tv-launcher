@@ -23,6 +23,8 @@ class IntroAnimator(
     private val overlay: TextView,
     private val glows: List<View>,
     private val labels: List<View>,
+    /** Zayıf cihaz: parıltı yok, öğeler (satırlar) yaylanmadan kısa geçişle gelir. */
+    private val lite: Boolean = false,
 ) {
     private var set: AnimatorSet? = null
     val isRunning: Boolean get() = set?.isRunning == true
@@ -61,7 +63,7 @@ class IntroAnimator(
                 intArrayOf(0xffb79cff.toInt(), 0xff7ad7ff.toInt(), 0xffffffff.toInt(), 0xffff7ab8.toInt(), 0xffb79cff.toInt()),
                 null, Shader.TileMode.MIRROR,
             )
-            overlay.paint.shader = shader
+            if (!lite) overlay.paint.shader = shader
             val m = Matrix()
             val shimmer = ValueAnimator.ofFloat(-w, w).apply {
                 duration = 1100
@@ -125,10 +127,11 @@ class IntroAnimator(
                 AnimatorSet().apply {
                     playTogether(
                         ObjectAnimator.ofFloat(c, View.ALPHA, 1f).apply { interpolator = DecelerateInterpolator() },
-                        ObjectAnimator.ofFloat(c, View.TRANSLATION_Y, 0f).apply { interpolator = OvershootInterpolator(1.6f) },
+                        ObjectAnimator.ofFloat(c, View.TRANSLATION_Y, 0f)
+                            .apply { interpolator = if (lite) DecelerateInterpolator() else OvershootInterpolator(1.6f) },
                     )
-                    startDelay = 1100L + minOf(i, 15) * 45L
-                    duration = 420
+                    startDelay = if (lite) 950L + i * 110L else 1100L + minOf(i, 15) * 45L
+                    duration = if (lite) 300 else 420
                 }
             }
             // Renkli overlay başlığın üstündeyken beyaz başlığa yumuşakça geçiş.
@@ -146,9 +149,10 @@ class IntroAnimator(
                 startDelay = 1800
                 duration = 450
             }
+            if (lite) { handoff.startDelay = 1150; labelsIn.startDelay = 1250 }
             val all = AnimatorSet()
             set = all
-            all.playTogether(listOf(appear, move, shimmer, handoff, labelsIn) + glowIn + glowOut + cardAnims)
+            all.playTogether(listOfNotNull(appear, move, shimmer.takeUnless { lite }, handoff, labelsIn) + glowIn + glowOut + cardAnims)
             all.addListener(object : AnimatorListenerAdapter() {
                 private var done = false
                 override fun onAnimationEnd(a: Animator) {

@@ -68,6 +68,7 @@ class HomeActivity : Activity() {
     private var initialFocusDone = false
     private var introQueued = false
     private var swallowKeyUp = false
+    private var weak = false
     private lateinit var menuPanel: View
     private lateinit var menuScrim: View
     private var menuReturnFocus: View? = null
@@ -102,8 +103,10 @@ class HomeActivity : Activity() {
         favRow = findViewById(R.id.favRow)
         allRow = findViewById(R.id.allRow)
         tileRow = findViewById(R.id.tiles)
-        intro = IntroAnimator(header, findViewById(R.id.overlayTitle), if (isWeakDevice()) emptyList() else listOf(findViewById(R.id.glowA), findViewById(R.id.glowB), findViewById(R.id.glowC)),
-            listOf(findViewById(R.id.labelFav), findViewById(R.id.labelAll), findViewById(R.id.labelSettings)))
+        weak = isWeakDevice()
+        intro = IntroAnimator(header, findViewById(R.id.overlayTitle), if (weak) emptyList() else listOf(findViewById(R.id.glowA), findViewById(R.id.glowB), findViewById(R.id.glowC)),
+            listOf(findViewById(R.id.labelFav), findViewById(R.id.labelAll), findViewById(R.id.labelSettings)),
+            lite = weak)
         menuPanel = findViewById(R.id.menuPanel)
         menuScrim = findViewById(R.id.menuScrim)
         menuScrim.setOnClickListener { closeMenu() }
@@ -245,7 +248,8 @@ class HomeActivity : Activity() {
         empty.visibility = if (nothing) View.VISIBLE else View.GONE
 
         rowsView.post {
-            if (introQueued) rowsView.postDelayed(::startIntro, introDelayMs(SystemClock.elapsedRealtime()))
+            // Önce görünen kartların görselleri yüklensin (soğuk açılışta animasyonla işlemciyi paylaşıp takılmasın).
+            if (introQueued) loader.whenIdle { rowsView.postDelayed(::startIntro, introDelayMs(SystemClock.elapsedRealtime())) }
             val target = when {
                 !initialFocusDone -> firstCard()
                 focusedRow != null -> focusedRow.children().firstOrNull { it.tag == focusedKey }
@@ -264,7 +268,9 @@ class HomeActivity : Activity() {
         introQueued = false
         rowsView.alpha = 1f
         setGreeting(slotFor(LocalTime.now().hour))
-        val items = favRow.children() + allRow.children().take(7) + tileRow.children()
+        // Zayıf cihazda 18 kart yerine 3 satır canlandırılır (daha az çizim işi).
+        val items = if (weak) listOf<View>(findViewById(R.id.favScroll), allRow.parent.parent as View, tileRow)
+        else favRow.children() + allRow.children().take(7) + tileRow.children()
         intro.play(header.text.toString(), items) {}
     }
 

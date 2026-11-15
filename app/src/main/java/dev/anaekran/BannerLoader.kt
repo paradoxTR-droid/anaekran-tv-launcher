@@ -32,6 +32,9 @@ class BannerLoader(private val pm: PackageManager) {
 
     fun clear() = cache.evictAll()
 
+    /** Kuyruktaki tüm yüklemeler bitince ana thread'de çalışır (tek thread'li sıra: sona eklenen iş en son biter). */
+    fun whenIdle(action: () -> Unit) = executor.execute { main.post(action) }
+
     private fun apply(art: Art, into: ImageView, fallback: (Drawable?) -> Unit) {
         if (art.banner != null) into.setImageDrawable(art.banner) else fallback(art.icon)
     }
