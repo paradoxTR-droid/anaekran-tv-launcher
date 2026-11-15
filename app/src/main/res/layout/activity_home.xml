@@ -5,9 +5,8 @@
     android:layout_height="match_parent"
     android:background="#07080c">
 
-    <!-- Boyutu kodda ekrandan büyük ayarlanır ve yavaşça kaydırılır. -->
+    <!-- Sabit arka plan: hareketli hali boştayken her karede tam ekran çizim yapıp GPU'yu ~10 ms/kare meşgul ediyordu. -->
     <View
-        android:id="@+id/bgDrift"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/bg_home" />

@@ -1,7 +1,6 @@
 package dev.anaekran
 
 import android.app.Activity
-import android.animation.ValueAnimator
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
@@ -64,8 +63,6 @@ class HomeActivity : Activity() {
     private lateinit var menuScrim: View
     private var menuReturnFocus: View? = null
     private val menuOpen get() = menuPanel.visibility == View.VISIBLE
-    private lateinit var bgDrift: View
-    private var drift: ValueAnimator? = null
 
     private val collator = Collator.getInstance(Locale.forLanguageTag("tr"))
     private val byLabel = Comparator<String> { a, b -> collator.compare(a, b) }
@@ -101,8 +98,6 @@ class HomeActivity : Activity() {
         menuPanel = findViewById(R.id.menuPanel)
         menuScrim = findViewById(R.id.menuScrim)
         menuScrim.setOnClickListener { closeMenu() }
-        bgDrift = findViewById(R.id.bgDrift)
-        setupDrift()
         setGreeting(slotFor(LocalTime.now().hour))
         buildTiles()
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
@@ -144,14 +139,8 @@ class HomeActivity : Activity() {
         super.onStop()
     }
 
-    override fun onPause() {
-        drift?.pause()
-        super.onPause()
-    }
-
     override fun onResume() {
         super.onResume()
-        drift?.let { if (it.isPaused) it.resume() else if (!it.isStarted) it.start() }
         val bootCount = Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT, -1)
         if (gate.shouldPlay(bootCount)) {
             gate.markPlayed(bootCount)
@@ -273,6 +262,8 @@ class HomeActivity : Activity() {
             bindCard(card, e)
             card.setOnClickListener { launch(e) }
             card.setOnLongClickListener { showAppMenu(e, favorite); true }
+            card.outlineAmbientShadowColor = 0
+            card.outlineSpotShadowColor = 0
             card.setOnFocusChangeListener { v, has -> highlight(v, has) }
             row.addView(card)
         }
@@ -301,6 +292,8 @@ class HomeActivity : Activity() {
             v.findViewById<TextView>(R.id.tileLabel).setText(t.label)
             v.setOnClickListener { openSettings(t.intent) }
             if (t.key == KEY_ALL_SETTINGS) v.setOnLongClickListener { showHiddenApps(); true }
+            v.outlineAmbientShadowColor = 0
+            v.outlineSpotShadowColor = 0
             v.setOnFocusChangeListener { view, has -> highlight(view, has) }
             tileRow.addView(v)
         }
@@ -308,9 +301,9 @@ class HomeActivity : Activity() {
 
     /** Odaklanan kart/kutucuk büyür ve beyaz çerçeve alır. */
     private fun highlight(v: View, has: Boolean) {
-        val d = resources.displayMetrics.density
+        // Küçük yükseklik yalnızca büyüyen kart komşusunun üstünde çizilsin diye; gölge renkleri şeffaf (bkz. kart kurulumu).
+        v.translationZ = if (has) 2f else 0f
         v.animate().scaleX(if (has) 1.1f else 1f).scaleY(if (has) 1.1f else 1f)
-            .translationZ(if (has) 14 * d else 0f)
             .setInterpolator(if (has) OvershootInterpolator(2f) else DecelerateInterpolator())
             .setDuration(if (has) 220 else 150).start()
         v.foreground = if (has) getDrawable(R.drawable.card_focus) else null
@@ -383,27 +376,6 @@ class HomeActivity : Activity() {
             MenuAction.UNINSTALL -> return openSettings(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", pkg, null)))
         }
         reloadApps()
-    }
-
-    /** Arka plan renk geçişi ekrandan büyük çizilir ve 40 sn'de bir uçtan uca kayar (katman yok: doku belleği tutmasın, geçiş GPU'da ucuz). */
-    private fun setupDrift() {
-        val dm = resources.displayMetrics
-        val extraW = (dm.widthPixels * 0.3f).toInt()
-        val extraH = (dm.heightPixels * 0.3f).toInt()
-        bgDrift.layoutParams = (bgDrift.layoutParams as ViewGroup.LayoutParams).apply {
-            width = dm.widthPixels + extraW
-            height = dm.heightPixels + extraH
-        }
-        drift = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 40_000
-            repeatMode = ValueAnimator.REVERSE
-            repeatCount = ValueAnimator.INFINITE
-            addUpdateListener {
-                val f = it.animatedValue as Float
-                bgDrift.translationX = -extraW * f
-                bgDrift.translationY = -extraH * f * 0.6f
-            }
-        }
     }
 
     private fun dialog() = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
