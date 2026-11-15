@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "dev.anaekran"
-        minSdk = 34
+        minSdk = 28 // Xiaomi Mi TV Stick: Android 9
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"

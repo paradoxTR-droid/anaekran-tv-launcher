@@ -8,7 +8,7 @@ import android.content.pm.PackageManager
 fun loadApps(pm: PackageManager, selfPackage: String): List<AppEntry> =
     pm.queryIntentActivities(
         Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER),
-        PackageManager.ResolveInfoFlags.of(0),
+        0, // int sürüm: ResolveInfoFlags Android 13+
     )
         .map { it.activityInfo }
         .filter { it.packageName != selfPackage }

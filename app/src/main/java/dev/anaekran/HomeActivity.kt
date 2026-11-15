@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
@@ -29,17 +30,24 @@ import java.util.concurrent.Executors
 import kotlin.random.Random
 
 class HomeActivity : Activity() {
-    private class Tile(val key: String, val icon: Int, val label: Int, val intent: Intent)
+    /** Her kutucuk sırayla dener: Google TV (Android 14) yolu, sonra Android 9 yolu; hiçbiri yoksa genel Ayarlar. */
+    private class Tile(val key: String, val icon: Int, val label: Int, val intents: List<Intent>)
 
     private val tiles = listOf(
-        Tile("tile:wifi", R.drawable.ic_wifi, R.string.tile_wifi, Intent(Settings.ACTION_WIFI_SETTINGS)),
-        // Paketsiz SOUND_SETTINGS bu cihazda iki uygulama arasında seçim ekranı açıyor.
-        Tile("tile:sound", R.drawable.ic_sound, R.string.tile_sound, Intent(Settings.ACTION_SOUND_SETTINGS).setPackage(TV_SETTINGS)),
-        // Google TV'de ayrı ekran sayfası yok; DISPLAY_SETTINGS çözülmüyor, görüntü ayarları bu sayfada.
-        Tile("tile:display", R.drawable.ic_display, R.string.tile_display, Intent().setClassName(TV_SETTINGS, "$TV_SETTINGS.device.displaysound.DisplaySoundActivity")),
-        // BLUETOOTH_SETTINGS çözülmüyor; Google TV'de bağlı cihazlar (kumanda, Bluetooth) sayfası.
-        Tile("tile:bt", R.drawable.ic_bluetooth, R.string.tile_bluetooth, Intent("com.android.tv.settings.CONNECTED_DEVICES")),
-        Tile(KEY_ALL_SETTINGS, R.drawable.ic_settings, R.string.tile_all_settings, Intent(Settings.ACTION_SETTINGS)),
+        Tile("tile:wifi", R.drawable.ic_wifi, R.string.tile_wifi, listOf(Intent(Settings.ACTION_WIFI_SETTINGS))),
+        // Paketsiz SOUND_SETTINGS Google TV'de iki uygulama arasında seçim ekranı açıyor.
+        Tile("tile:sound", R.drawable.ic_sound, R.string.tile_sound, listOf(Intent(Settings.ACTION_SOUND_SETTINGS).setPackage(TV_SETTINGS))),
+        // Google TV'de DISPLAY_SETTINGS çözülmüyor, ekran ayarları "Ekran ve Ses" sayfasında; Android 9'da standart intent çalışıyor.
+        Tile("tile:display", R.drawable.ic_display, R.string.tile_display, listOf(
+            Intent().setClassName(TV_SETTINGS, "$TV_SETTINGS.device.displaysound.DisplaySoundActivity"),
+            Intent(Settings.ACTION_DISPLAY_SETTINGS),
+        )),
+        // BLUETOOTH_SETTINGS iki cihazda da çözülmüyor: Google TV'de bağlı cihazlar, Android 9'da aksesuar eşleştirme sayfası.
+        Tile("tile:bt", R.drawable.ic_bluetooth, R.string.tile_bluetooth, listOf(
+            Intent("com.android.tv.settings.CONNECTED_DEVICES"),
+            Intent("com.google.android.intent.action.CONNECT_INPUT"),
+        )),
+        Tile(KEY_ALL_SETTINGS, R.drawable.ic_settings, R.string.tile_all_settings, listOf(Intent(Settings.ACTION_SETTINGS))),
     )
 
     private val io = Executors.newSingleThreadExecutor()
@@ -101,7 +109,7 @@ class HomeActivity : Activity() {
         menuScrim.setOnClickListener { closeMenu() }
         setGreeting(slotFor(LocalTime.now().hour))
         buildTiles()
-        registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
+        register(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), exported = false)
         val pkgFilter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
@@ -109,7 +117,7 @@ class HomeActivity : Activity() {
             addDataScheme("package")
         }
         // NOT_EXPORTED ile bu cihazda PACKAGE_* yayınları gelmiyor; bunlar korumalı sistem yayınları, başka uygulama gönderemez.
-        registerReceiver(packages, pkgFilter, RECEIVER_EXPORTED)
+        register(packages, pkgFilter, exported = true)
     }
 
     /** Home'a ana ekrandayken basılınca: animasyonsuz başa dön, ilk karta odaklan. */
@@ -123,6 +131,12 @@ class HomeActivity : Activity() {
         }
     }
 
+    /** Android 13+ dışa açıklık bayrağı ister; daha eskilerde (Android 9 stick) bayrak yok. */
+    private fun register(r: BroadcastReceiver, f: IntentFilter, exported: Boolean) {
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(r, f, if (exported) RECEIVER_EXPORTED else RECEIVER_NOT_EXPORTED)
+        else registerReceiver(r, f)
+    }
+
     override fun onDestroy() {
         unregisterReceiver(screenOff)
         unregisterReceiver(packages)
@@ -131,7 +145,7 @@ class HomeActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
-        registerReceiver(tick, IntentFilter(Intent.ACTION_TIME_TICK), RECEIVER_NOT_EXPORTED)
+        register(tick, IntentFilter(Intent.ACTION_TIME_TICK), exported = false)
         updateClock()
     }
 
@@ -295,7 +309,7 @@ class HomeActivity : Activity() {
             v.tag = t.key
             v.findViewById<ImageView>(R.id.tileIcon).setImageResource(t.icon)
             v.findViewById<TextView>(R.id.tileLabel).setText(t.label)
-            v.setOnClickListener { openSettings(t.intent) }
+            v.setOnClickListener { openSettings(*t.intents.toTypedArray()) }
             if (t.key == KEY_ALL_SETTINGS) v.setOnLongClickListener { showHiddenApps(); true }
             v.outlineAmbientShadowColor = 0
             v.outlineSpotShadowColor = 0
@@ -391,7 +405,7 @@ class HomeActivity : Activity() {
             val pm = packageManager
             val hidden = prefs.hidden.mapNotNull { pkg ->
                 try {
-                    pkg to pm.getApplicationLabel(pm.getApplicationInfo(pkg, PackageManager.ApplicationInfoFlags.of(0))).toString()
+                    pkg to pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
                 } catch (_: PackageManager.NameNotFoundException) {
                     null
                 }
@@ -411,8 +425,8 @@ class HomeActivity : Activity() {
     // --- Açma ---
 
     /** Ana ekran asla çökmesin: hedef yoksa ya da dışa kapalıysa genel Ayarlar'a, o da olmazsa hiçbir şey. */
-    fun openSettings(intent: Intent) {
-        for (i in listOf(intent, Intent(Settings.ACTION_SETTINGS))) {
+    fun openSettings(vararg intents: Intent) {
+        for (i in intents.toList() + Intent(Settings.ACTION_SETTINGS)) {
             try {
                 startActivity(Intent(i).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 return
