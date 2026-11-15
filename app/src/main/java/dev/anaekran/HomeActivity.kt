@@ -96,7 +96,7 @@ class HomeActivity : Activity() {
         favRow = findViewById(R.id.favRow)
         allRow = findViewById(R.id.allRow)
         tileRow = findViewById(R.id.tiles)
-        intro = IntroAnimator(header, findViewById(R.id.overlayTitle))
+        intro = IntroAnimator(header, findViewById(R.id.overlayTitle), listOf(findViewById(R.id.glowA), findViewById(R.id.glowB), findViewById(R.id.glowC)))
         menuPanel = findViewById(R.id.menuPanel)
         menuScrim = findViewById(R.id.menuScrim)
         menuScrim.setOnClickListener { closeMenu() }
