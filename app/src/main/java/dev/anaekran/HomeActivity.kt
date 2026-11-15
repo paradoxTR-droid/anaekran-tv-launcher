@@ -66,6 +66,12 @@ class HomeActivity : Activity() {
     private val screenOff = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) = gate.onScreenOff()
     }
+    private val packages = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) {
+            loader.clear() // güncellenen uygulamanın banner'ı değişmiş olabilir
+            reloadApps()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,10 +90,29 @@ class HomeActivity : Activity() {
         setGreeting(slotFor(LocalTime.now().hour))
         buildTiles()
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
+        val pkgFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)
+            addDataScheme("package")
+        }
+        // NOT_EXPORTED ile bu cihazda PACKAGE_* yayınları gelmiyor; bunlar korumalı sistem yayınları, başka uygulama gönderemez.
+        registerReceiver(packages, pkgFilter, RECEIVER_EXPORTED)
+    }
+
+    /** Home'a ana ekrandayken basılınca: animasyonsuz başa dön, ilk karta odaklan. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
+            findViewById<View>(R.id.favScroll).scrollTo(0, 0)
+            findViewById<View>(R.id.allScroll).scrollTo(0, 0)
+            firstCard()?.requestFocus()
+        }
     }
 
     override fun onDestroy() {
         unregisterReceiver(screenOff)
+        unregisterReceiver(packages)
         super.onDestroy()
     }
 
@@ -116,6 +141,8 @@ class HomeActivity : Activity() {
 
     /** Animasyon sırasında herhangi bir tuş animasyonu atlar; tuş başka işe yaramaz. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Ana ekranda Geri tuşu hiçbir şey yapmaz.
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) return true
         if (event.action == KeyEvent.ACTION_DOWN && (intro.isRunning || introQueued)) {
             introQueued = false
             intro.skip()
