@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -223,13 +224,7 @@ class HomeActivity : Activity() {
         empty.visibility = if (nothing) View.VISIBLE else View.GONE
 
         rowsView.post {
-            if (introQueued) {
-                introQueued = false
-                rowsView.alpha = 1f
-                setGreeting(slotFor(LocalTime.now().hour))
-                val items = favRow.children() + allRow.children().take(7) + tileRow.children()
-                intro.play(header.text.toString(), items) {}
-            }
+            if (introQueued) rowsView.postDelayed(::startIntro, introDelayMs(SystemClock.elapsedRealtime()))
             val target = when {
                 !initialFocusDone -> firstCard()
                 focusedRow != null -> focusedRow.children().firstOrNull { it.tag == focusedKey }
@@ -240,6 +235,16 @@ class HomeActivity : Activity() {
             initialFocusDone = true
             target?.requestFocus()
         }
+    }
+
+    /** Bekleme sırasında bir tuşa basıldıysa (introQueued=false) animasyon hiç başlamaz. */
+    private fun startIntro() {
+        if (!introQueued) return
+        introQueued = false
+        rowsView.alpha = 1f
+        setGreeting(slotFor(LocalTime.now().hour))
+        val items = favRow.children() + allRow.children().take(7) + tileRow.children()
+        intro.play(header.text.toString(), items) {}
     }
 
     private fun firstCard(): View? =

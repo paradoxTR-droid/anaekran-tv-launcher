@@ -1,5 +1,6 @@
 package dev.anaekran
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,5 +38,12 @@ class IntroGateTest {
         assertFalse(gate.shouldPlay(-1))
         gate.onScreenOff()
         assertTrue(gate.shouldPlay(-1))
+    }
+
+    @Test fun delayRightAfterBoot() = assertEquals(1500L, introDelayMs(uptimeMs = 40_000))
+
+    @Test fun delayEndsAfterTwoMinutes() {
+        assertEquals(1500L, introDelayMs(uptimeMs = 119_999))
+        assertEquals(0L, introDelayMs(uptimeMs = 120_000))
     }
 }

@@ -19,3 +19,6 @@ class IntroGate(private val state: IntroState) {
         if (bootCount >= 0) state.lastBootCount = bootCount
     }
 }
+
+/** Açılıştan sonraki ilk 2 dakikada sistem çok yoğun (gözlenen yük ~19); animasyon biraz beklesin ki takılmasın. */
+fun introDelayMs(uptimeMs: Long): Long = if (uptimeMs < 120_000) 1500L else 0L
