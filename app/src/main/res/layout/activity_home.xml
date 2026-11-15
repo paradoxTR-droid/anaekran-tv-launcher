@@ -8,10 +8,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipChildren="false"
         android:orientation="vertical">
 
         <LinearLayout
-            android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -19,7 +19,7 @@
             android:paddingStart="48dp"
             android:paddingTop="28dp"
             android:paddingEnd="48dp"
-            android:paddingBottom="16dp">
+            android:paddingBottom="8dp">
 
             <TextView
                 android:id="@+id/header"
@@ -35,81 +35,68 @@
                 android:id="@+id/clock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
                 android:fontFamily="sans-serif-light"
                 android:textColor="#e6ffffff"
                 android:textSize="22sp" />
-
-            <ImageButton
-                android:id="@+id/btnWifi"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="12dp"
-                android:background="@drawable/icon_bg"
-                android:contentDescription="Wi-Fi"
-                android:focusable="true"
-                android:nextFocusDown="@id/grid"
-                android:padding="10dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_wifi"
-                android:tint="@color/icon_tint" />
-            <ImageButton
-                android:id="@+id/btnSound"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="12dp"
-                android:background="@drawable/icon_bg"
-                android:contentDescription="Ses"
-                android:focusable="true"
-                android:nextFocusDown="@id/grid"
-                android:padding="10dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_sound"
-                android:tint="@color/icon_tint" />
-            <ImageButton
-                android:id="@+id/btnSettings"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="12dp"
-                android:background="@drawable/icon_bg"
-                android:contentDescription="Ayarlar"
-                android:focusable="true"
-                android:nextFocusDown="@id/grid"
-                android:padding="10dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_settings"
-                android:tint="@color/icon_tint" />
         </LinearLayout>
 
-        <GridView
-            android:id="@+id/grid"
-            android:nextFocusUp="@id/btnWifi"
+        <LinearLayout
+            android:id="@+id/rows"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
             android:clipChildren="false"
-            android:clipToPadding="false"
-            android:horizontalSpacing="24dp"
-            android:listSelector="@android:color/transparent"
-            android:numColumns="5"
-            android:paddingStart="48dp"
-            android:paddingTop="12dp"
-            android:paddingEnd="48dp"
-            android:paddingBottom="32dp"
-            android:scrollbars="none"
-            android:stretchMode="columnWidth"
-            android:verticalSpacing="24dp" />
-    </LinearLayout>
+            android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/empty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/all_hidden"
-        android:textColor="#b3ffffff"
-        android:textSize="18sp"
-        android:visibility="gone" />
+            <TextView style="@style/RowLabel" android:text="@string/row_favorites" />
+
+            <HorizontalScrollView
+                android:id="@+id/favScroll"
+                style="@style/RowScroll">
+
+                <LinearLayout android:id="@+id/favRow" style="@style/RowInner" />
+            </HorizontalScrollView>
+
+            <TextView style="@style/RowLabel" android:text="@string/row_all" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false">
+
+                <HorizontalScrollView
+                    android:id="@+id/allScroll"
+                    style="@style/RowScroll">
+
+                    <LinearLayout android:id="@+id/allRow" style="@style/RowInner" />
+                </HorizontalScrollView>
+
+                <TextView
+                    android:id="@+id/empty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="48dp"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/all_hidden"
+                    android:textColor="#b3ffffff"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <TextView style="@style/RowLabel" android:text="@string/row_settings" />
+
+            <LinearLayout
+                android:id="@+id/tiles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:paddingStart="48dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="48dp"
+                android:paddingBottom="8dp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/overlayTitle"

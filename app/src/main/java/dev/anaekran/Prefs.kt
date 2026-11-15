@@ -21,7 +21,12 @@ class Prefs(context: Context) : IntroState {
         get() = sp.getInt(KEY_LAST_BOOT, -1)
         set(v) = sp.edit().putInt(KEY_LAST_BOOT, v).apply()
 
+    var favoritesInitialized: Boolean
+        get() = sp.getBoolean(KEY_FAV_INIT, false)
+        set(v) = sp.edit().putBoolean(KEY_FAV_INIT, v).apply()
+
     private companion object {
+        const val KEY_FAV_INIT = "favorites_initialized"
         const val KEY_PINNED = "pinned"
         const val KEY_HIDDEN = "hidden"
         const val KEY_INTRO_PENDING = "intro_pending"

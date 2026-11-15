@@ -6,19 +6,18 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.view.View
 import android.view.animation.DecelerateInterpolator
-import android.widget.GridView
 import android.widget.TextView
 
 /**
- * Ortada beliren cümle sol üstteki başlığa kayar, ardından kartlar alttan sırayla yerine oturur.
+ * Ortada beliren cümle sol üstteki başlığa kayar, ardından kartlar/kutucuklar alttan sırayla yerine oturur.
  * Toplam ~1.9 sn: 0–300 ms belirme, 550–900 ms başlığa kayma, 900 ms'den itibaren kartlar.
  */
-class IntroAnimator(private val header: TextView, private val grid: GridView, private val overlay: TextView) {
+class IntroAnimator(private val header: TextView, private val overlay: TextView) {
     private var set: AnimatorSet? = null
     val isRunning: Boolean get() = set?.isRunning == true
 
-    fun play(text: String, onEnd: () -> Unit) {
-        val d = grid.resources.displayMetrics.density
+    fun play(text: String, items: List<View>, onEnd: () -> Unit) {
+        val d = overlay.resources.displayMetrics.density
         header.text = text
         header.alpha = 0f
         overlay.text = text
@@ -26,19 +25,19 @@ class IntroAnimator(private val header: TextView, private val grid: GridView, pr
         overlay.alpha = 0f
         overlay.scaleX = 1.25f; overlay.scaleY = 1.25f
         overlay.translationX = 0f; overlay.translationY = 0f
-        grid.alpha = 1f
-        val cards = (0 until grid.childCount).map { grid.getChildAt(it) }
+        val cards = items
         cards.forEach { it.alpha = 0f; it.translationY = 60 * d }
 
         overlay.post {
             // Başlık 24sp, overlay 48sp: yarı ölçek; hedef = başlık metninin merkezi.
             val scale = header.textSize / overlay.textSize
-            val o = IntArray(2).also { overlay.getLocationOnScreen(it) }
-            val h = IntArray(2).also { header.getLocationOnScreen(it) }
+            // Overlay'in layout konumu (left/top) ölçekten etkilenmez; getLocationOnScreen etkilenir.
+            // İkisi de tam ekran kök FrameLayout içinde, pencere orijini = ekran orijini.
+            val h = IntArray(2).also { header.getLocationInWindow(it) }
             val targetCx = h[0] + header.paddingLeft + overlay.width * scale / 2f
             val targetCy = h[1] + header.height / 2f
-            val dx = targetCx - (o[0] + overlay.width / 2f)
-            val dy = targetCy - (o[1] + overlay.height / 2f)
+            val dx = targetCx - (overlay.left + overlay.width / 2f)
+            val dy = targetCy - (overlay.top + overlay.height / 2f)
 
             val appear = AnimatorSet().apply {
                 playTogether(
