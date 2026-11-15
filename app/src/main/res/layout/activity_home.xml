@@ -110,4 +110,15 @@
         android:textColor="#b3ffffff"
         android:textSize="18sp"
         android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/overlayTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:fontFamily="sans-serif-medium"
+        android:maxLines="1"
+        android:textColor="#ffffff"
+        android:textSize="48sp"
+        android:visibility="gone" />
 </FrameLayout>

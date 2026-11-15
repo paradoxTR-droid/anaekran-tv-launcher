@@ -2,7 +2,7 @@ package dev.anaekran
 
 import android.content.Context
 
-class Prefs(context: Context) {
+class Prefs(context: Context) : IntroState {
     private val sp = context.getSharedPreferences("anaekran", Context.MODE_PRIVATE)
 
     var pinned: List<String>
@@ -13,11 +13,11 @@ class Prefs(context: Context) {
         get() = sp.getStringSet(KEY_HIDDEN, emptySet())!!.toSet()
         set(v) = sp.edit().putStringSet(KEY_HIDDEN, v).apply()
 
-    var introPending: Boolean
+    override var introPending: Boolean
         get() = sp.getBoolean(KEY_INTRO_PENDING, false)
         set(v) = sp.edit().putBoolean(KEY_INTRO_PENDING, v).apply()
 
-    var lastBootCount: Int
+    override var lastBootCount: Int
         get() = sp.getInt(KEY_LAST_BOOT, -1)
         set(v) = sp.edit().putInt(KEY_LAST_BOOT, v).apply()
 

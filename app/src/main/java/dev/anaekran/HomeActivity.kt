@@ -34,6 +34,13 @@ class HomeActivity : Activity() {
     private lateinit var adapter: AppGridAdapter
     private var selected: View? = null
     private var initialFocusDone = false
+    private lateinit var gate: IntroGate
+    private lateinit var intro: IntroAnimator
+    private var introQueued = false
+    private var swallowKeyUp = false
+    private val screenOff = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) = gate.onScreenOff()
+    }
     private val collator = Collator.getInstance(Locale.forLanguageTag("tr"))
     private val byLabel = Comparator<String> { a, b -> collator.compare(a, b) }
     private val clockFormat = DateTimeFormatter.ofPattern("HH:mm")
@@ -52,6 +59,9 @@ class HomeActivity : Activity() {
         adapter = AppGridAdapter(loader)
         grid.adapter = adapter
         clock = findViewById(R.id.clock)
+        gate = IntroGate(prefs)
+        intro = IntroAnimator(header, grid, findViewById(R.id.overlayTitle))
+        registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
         setGreeting(slotFor(LocalTime.now().hour))
 
         bindIcon(R.id.btnWifi) { openSettings(Settings.ACTION_WIFI_SETTINGS) }
@@ -114,9 +124,36 @@ class HomeActivity : Activity() {
         }
     }
 
+    override fun onDestroy() {
+        unregisterReceiver(screenOff)
+        super.onDestroy()
+    }
+
     override fun onResume() {
         super.onResume()
+        val bootCount = Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT, -1)
+        if (gate.shouldPlay(bootCount)) {
+            gate.markPlayed(bootCount)
+            introQueued = true
+            grid.alpha = 0f // kartlar liste yüklenince animasyonla gelir
+        }
         reloadApps()
+    }
+
+    /** Animasyon sırasında herhangi bir tuş animasyonu atlar; tuş başka işe yaramaz. */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && (intro.isRunning || introQueued)) {
+            introQueued = false
+            intro.skip()
+            grid.alpha = 1f
+            swallowKeyUp = true
+            return true
+        }
+        if (event.action == KeyEvent.ACTION_UP && swallowKeyUp) {
+            swallowKeyUp = false
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     fun reloadApps() {
@@ -127,6 +164,12 @@ class HomeActivity : Activity() {
                 empty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                 if (list.isEmpty()) findViewById<View>(R.id.btnWifi).requestFocus()
                 grid.post {
+                    if (introQueued) {
+                        introQueued = false
+                        val slot = slotFor(LocalTime.now().hour)
+                        headerSlot = slot
+                        intro.play(pickGreeting(slot, Random.Default)) {}
+                    }
                     // Pencere ilk odağı üst bardaki simgeye verir; açılışta ilk karttan başla.
                     if (!initialFocusDone && list.isNotEmpty()) {
                         initialFocusDone = true
