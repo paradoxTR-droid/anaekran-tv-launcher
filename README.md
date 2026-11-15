@@ -1,6 +1,8 @@
 # Ana Ekran
 
 Next 4K Google TV Stick (Android 14) ve Xiaomi Mi TV Stick (Android 9) için kendi ana ekranım: internet izni yok, dış kütüphane yok.
+
+![Ana ekran](docs/img/anaekran.png)
 Tasarım: `docs/superpowers/specs/2026-11-15-tv-launcher-design.md`
 
 ```bash
